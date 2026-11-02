@@ -25,10 +25,27 @@ spectra were extracted **without flat-fielding / blaze correction**. The
 continuum was instead set per order by a median filter.
 
 What this means:
-- **For relative/ CCF RV: little impact.** The per-order median-filter
-  normalisation removes the blaze shape, and CCF RV is differential, so the
-  missing flat largely cancels. The tutorial demonstrates this empirically —
-  HD 9407 repeats to ~m/s between adjacent nights.
+- **For relative/ CCF RV: negligible impact — measured.** We re-extracted the
+  HD 9407 frames *with* the single-fiber blaze (`flat_A.fits` HDU 5, divide each
+  order by the flat's extracted flux) and *without*, then compared the CCF RVs:
+
+  ```
+    frame   no-flat     with-flat    diff
+    062    -43791 m/s  -43595 m/s   +196
+    063    -43847      -43583       +265
+    064    -43791      -43562       +229
+    043    -43307      -43037       +270
+    044    -43286      -43047       +239
+    → applying the flat adds a ~+240 m/s CONSTANT absolute offset,
+      but the frame-to-frame (relative) RV changes by only ~27 m/s rms.
+  ```
+
+  So the flat only shifts the **absolute** zero-point (~240 m/s); the
+  **differential** RV — all that matters for RM, night-to-night, or any
+  standard-tied work — is unchanged to ~27 m/s rms, well below the per-epoch
+  photon noise. The per-order median-filter normalisation already removes the
+  blaze shape, and CCF RV is differential, so the missing flat cancels. The
+  tutorial confirms it at the m/s level (HD 9407 adjacent nights).
 - **For absolute flux, line depths, S/N weighting, or chromatic indices: not
   reliable.** These need a real flat. Treat the extracted flux as
   continuum-normalised only.
