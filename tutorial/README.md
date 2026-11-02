@@ -63,8 +63,10 @@ days** that must be removed with standard stars before combining multi-night RVs
 3. `compute_ccf` — depth-weighted cross-correlation vs the mask.
 4. measure the RV, two estimators:
    * **`gauss`** — Gaussian centroid of the mask CCF → absolute RV, then add
-     BERV. Best for sharp-lined, decent-S/N stars (used here; matches the
-     LSD-Gaussian benchmark to a few m/s).
+     BERV. Best for sharp-lined, decent-S/N stars (used here). The reported
+     uncertainty is the **Bouchy (2001) photon-noise error** from the CCF
+     gradient (`rv_bouchy_error`), which is realistic (~15 m/s here); the
+     Gaussian-fit covariance is conservative and not used.
    * **`chunk`** — split into wavelength chunks, cross-correlate each against a
      common (barycentric-shifted) master, σ-clip outlier chunks, robust-mean →
      RV with a *data-driven* error. Preferred for broad-lined / fast-rotating /

@@ -260,6 +260,24 @@ def rv_gauss(vgrid, ccf, half_window=40.0):
         return v0, np.nan
 
 
+def rv_bouchy_error(vgrid, ccf, cont_half=40.0):
+    """Photon-noise RV uncertainty from the CCF (Bouchy et al. 2001), in km/s.
+
+    sigma_RV = sigma_CCF / sqrt( sum_i (dCCF/dv)_i^2 ), with the CCF noise
+    sigma_CCF estimated from the flat continuum region (|v - peak| > cont_half).
+    More realistic than the Gaussian-fit covariance, which is conservative for a
+    weighted CCF (it ignores that the information lives in the line flanks).
+    """
+    vgrid = np.asarray(vgrid, float)
+    ccf = np.asarray(ccf, float)
+    peak = vgrid[np.argmax(ccf)]
+    cont = np.abs(vgrid - peak) > cont_half
+    sigma_ccf = np.std(ccf[cont]) if cont.sum() > 5 else np.std(ccf)
+    dcdv = np.gradient(ccf, vgrid)
+    q = np.sqrt(np.sum((dcdv / sigma_ccf) ** 2))
+    return 1.0 / q if q > 0 else np.nan
+
+
 def _xcorr_shift(vgrid, ccf, template, max_lag=15.0, step=0.1):
     """Sub-pixel velocity lag of ccf relative to template (parabolic refine)."""
     lags = np.arange(-max_lag, max_lag + step, step)
@@ -389,7 +407,8 @@ def measure_rv(spectrum, mask, coord=None, method='chunk', master=None,
     elif method == 'gauss':
         vgrid = np.arange(-vspan, vspan + dv, dv)
         ccf = compute_ccf(spectrum['wave'], spectrum['flux'], mask_wl, mask_wt, vgrid)
-        rv_rest, err = rv_gauss(vgrid, ccf)
+        rv_rest, _ = rv_gauss(vgrid, ccf)
+        err = rv_bouchy_error(vgrid, ccf)   # photon-noise error (Bouchy 2001)
     else:
         raise ValueError('unknown method %r' % method)
 
