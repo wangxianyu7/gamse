@@ -27,12 +27,15 @@ Because a standard star has a constant true RV, the scatter of the measured RVs
 
 ## Run it
 
+Open the notebook [`end2end_ccf_rv.ipynb`](end2end_ccf_rv.ipynb) (it has the
+executed outputs and the figure inline):
+
 ```bash
 cd tutorial
-python end2end_ccf_rv.py
+jupyter lab end2end_ccf_rv.ipynb      # or: jupyter notebook
 ```
 
-Output (`hd9407_3night_rv.png` + a table):
+Output (a table + an inline figure, also saved as `hd9407_3night_rv.png`):
 
 ```
 per-night mean RV (instrument zero-point)
