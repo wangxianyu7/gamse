@@ -128,8 +128,28 @@ def build_mask(wave, flux, depth_min=0.10, wmin=4300.0, wmax=6476.0,
 
 
 def _read_mask_raw(path):
-    """Return raw (wave_Angstrom, depth) arrays from a mask file."""
-    opener = gzip.open if str(path).endswith('.gz') else open
+    """Return raw (wave_Angstrom, depth) arrays from a mask file.
+
+    Supports a FITS binary table (ESPRESSO / HARPS / CORALIE / NIRPS style, with
+    ``lambda``+``contrast`` columns — these are in AIR wavelengths, use as-is),
+    a VALD "extract stellar" list (via specpolFlow, nm), or plain two-column text.
+    """
+    sp = str(path).lower()
+    if sp.endswith(('.fits', '.fit')):
+        with fits.open(path) as hdul:
+            for h in hdul:
+                if getattr(h, 'columns', None) is None:
+                    continue
+                names = {c.lower(): c for c in h.columns.names}
+                wcol = next((names[k] for k in ('lambda', 'wave', 'wavelength', 'll')
+                             if k in names), None)
+                dcol = next((names[k] for k in ('contrast', 'weight', 'depth', 'w')
+                             if k in names), None)
+                if wcol and dcol:
+                    return (np.asarray(h.data[wcol], float),
+                            np.asarray(h.data[dcol], float))
+        raise ValueError('no lambda/contrast table found in %s' % path)
+    opener = gzip.open if sp.endswith('.gz') else open
     # Try specpolFlow first (handles VALD masks cleanly) if available.
     try:
         import specpolFlow as spf

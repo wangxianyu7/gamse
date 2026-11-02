@@ -8,8 +8,13 @@ extraction); feed it the 1-D spectra GAMSE produces.
 ## The example: an RV standard star over three nights
 
 `data/` holds the RV standard **HD 9407** (G6.5 V) extracted from Xinglong
-2.16 m HRS frames on three nights (2026-10-18, 10-26, 10-27), plus a line mask
-(`mask_GK.txt`, VALD, 4300–6476 Å with the 6270–6359 Å O₂ band removed).
+2.16 m HRS frames on three nights (2026-10-18, 10-26, 10-27), plus the official
+**ESPRESSO G8 CCF mask** (`ESPRESSO_G8.fits`, from
+[`j-faria/iCCF`](https://github.com/j-faria/iCCF); G2/G9 also included). The
+ESPRESSO/HARPS masks are the community standard (also the basis of NEID-type CCF
+pipelines) and are in **air** wavelengths; `read_mask` reads the FITS table
+directly and keeps 4300–6476 Å, dropping the 6270–6359 Å O₂ band. G8 matches our
+G6.5 V target.
 
 Each spectrum is a small FITS file with a `WAVE / FLUX / ERR` table and the
 header keywords the RV step needs (`DATE-OBS`, `EXPTIME`, `RA`, `DEC`). Note the
@@ -38,13 +43,13 @@ jupyter lab end2end_ccf_rv.ipynb      # or: jupyter notebook
 Output (a table + an inline figure, also saved as `hd9407_3night_rv.png`):
 
 ```
-per-night mean RV (instrument zero-point)
-  2026-10-18 : +319 m/s   (scatter ~36 m/s)
-  2026-10-26 :  -15 m/s   (scatter ~26 m/s)
-  2026-10-27 :  -23 m/s   (scatter ~10 m/s)
+per-night mean RV (instrument zero-point, ESPRESSO-G8 mask)
+  2026-10-18 : +344 m/s   (scatter ~39 m/s)
+  2026-10-26 :   -3 m/s   (scatter ~7 m/s)
+  2026-10-27 :   -6 m/s   (scatter ~6 m/s)
 
   adjacent nights 10-26 vs 10-27 :  ~ few m/s   (rock-stable)
-  ~8-day drift   10-18 vs 10-27  :  ~ -340 m/s  (common zero-point drift)
+  ~8-day drift   10-18 vs 10-27  :  ~ -349 m/s  (common zero-point drift)
 ```
 
 i.e. the three-timescale picture: within a night a few–tens of m/s; **adjacent
@@ -73,7 +78,7 @@ from gamse.rv import ccf_rv_batch, read_mask
 from astropy.coordinates import SkyCoord; import astropy.units as u
 
 tab = ccf_rv_batch(sorted(glob.glob('data/hd9407_*.fits')),
-                   read_mask('data/mask_GK.txt'),
+                   read_mask('data/ESPRESSO_G8.fits'),
                    coord=SkyCoord('01:34:33.0 +68:56:53', unit=(u.hourangle, u.deg)),
                    method='gauss', utc_offset_hours=8.0)
 # fields: file, bjd, rv_ms, err_ms, berv_kms
@@ -83,16 +88,12 @@ The RVs are relative to the common template — subtract the median for a per-ep
 anomaly, or tie nights with a standard star (as above). This module stops at RV;
 orbit / Rossiter-McLaughlin modelling is left to downstream tools.
 
-## Matched mask (`make_solar_mask.py`)
+## Masks
 
-HD 9407 is a G6.5 V dwarf, so a Teff-matched **solar (G2 V)** mask beats the
-generic 6600 K one. `make_solar_mask.py` downloads the public **Kurucz 2005 solar
-irradiance atlas**, converts it **vacuum→air** (`gamse.rv.vac2air` — mixing
-air/vacuum shifts the CCF by ~80 km/s!), and calls `gamse.rv.build_mask` to make
-`data/mask_solar.txt`. Section 5 of the notebook compares the two masks (the
-matched one is as good or better; an empirical mask built from the star's own
-co-add, also via `build_mask`, does best — it is the exact star).
-
-```bash
-python make_solar_mask.py      # needs network; writes data/mask_solar.txt
-```
+The tutorial uses the ESPRESSO masks (`data/ESPRESSO_G2/G8/G9.fits`) — pick the
+spectral type closest to your target. They are **air** wavelengths, so no
+conversion is needed. `gamse.rv` also provides helpers to roll your own matched
+mask: `build_mask(wave, flux, ...)` detects lines from any reference spectrum (a
+public atlas, or a co-add of your own frames), and `vac2air`/`air2vac` align the
+wavelength frame (an atlas in vacuum vs an air-based ThAr solution differ by
+~80 km/s in the CCF).
