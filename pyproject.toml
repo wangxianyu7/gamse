@@ -32,5 +32,8 @@ dependencies = [
 Homepage = "https://github.com/wangleon/gamse"
 Issues = "https://github.com/wangleon/gamse/issues"
 
+[tool.setuptools.packages.find]
+include = ["gamse*"]
+
 [tool.setuptools.package-data]
 gamse = ["**/*.yaml"]
