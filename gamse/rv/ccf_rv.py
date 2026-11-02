@@ -68,6 +68,65 @@ def read_mask(path, wmin=4300.0, wmax=6476.0,
     return wl[keep], dp[keep]
 
 
+def vac2air(wave_vac):
+    """Vacuum -> air wavelengths (Angstrom), Ciddor/Edlen (good in the optical).
+
+    External templates/atlases are often in vacuum while ThAr-based wavelength
+    solutions (and VALD "extract stellar" masks) are in air; mixing them shifts
+    the CCF by ~80 km/s near 5000 A. Convert before building/using a mask.
+    """
+    wave_vac = np.asarray(wave_vac, float)
+    s2 = (1e4 / wave_vac) ** 2
+    n = 1 + 0.0000834254 + 0.02406147 / (130 - s2) + 0.00015998 / (38.9 - s2)
+    return wave_vac / n
+
+
+def air2vac(wave_air):
+    """Air -> vacuum wavelengths (Angstrom)."""
+    wave_air = np.asarray(wave_air, float)
+    s2 = (1e4 / wave_air) ** 2
+    n = 1 + 0.00008336624212083 + 0.02408926869968 / (130.1065924522 - s2) \
+        + 0.0001599740894897 / (38.92568793293 - s2)
+    return wave_air * n
+
+
+def build_mask(wave, flux, depth_min=0.10, wmin=4300.0, wmax=6476.0,
+               exclude=((6270.0, 6359.0),), order=5, cont_window=4000,
+               normalized=False):
+    """Build a line mask (wave_A, depth) by detecting absorption lines.
+
+    Feed a high-S/N reference spectrum (a solar/stellar atlas, or a co-added
+    template of your own frames). Lines are local flux minima deeper than
+    ``depth_min`` after continuum normalisation.
+
+    Parameters
+    ----------
+    normalized : bool
+        If False (default) the continuum is estimated as a rolling 95th
+        percentile (window ``cont_window`` points) and divided out first.
+    order : int
+        Neighbourhood (pixels) for the local-minimum test.
+    Wavelengths must already be in the SAME frame (air/vacuum) as the spectra
+    you will cross-correlate — see :func:`vac2air` / :func:`air2vac`.
+    """
+    from scipy.signal import argrelmin
+    from scipy.ndimage import percentile_filter, uniform_filter1d
+    wave = np.asarray(wave, float)
+    flux = np.asarray(flux, float)
+    if normalized:
+        norm = flux
+    else:
+        cont = percentile_filter(flux, 95, size=cont_window)
+        cont = uniform_filter1d(cont, max(1, cont_window // 2))
+        norm = flux / cont
+    loc = argrelmin(norm, order=order)[0]
+    w0, dep = wave[loc], 1.0 - norm[loc]
+    keep = (dep > depth_min) & (w0 >= wmin) & (w0 <= wmax)
+    for lo, hi in exclude:
+        keep &= ~((w0 > lo) & (w0 < hi))
+    return w0[keep], np.clip(dep[keep], 0.0, 1.0)
+
+
 def _read_mask_raw(path):
     """Return raw (wave_Angstrom, depth) arrays from a mask file."""
     opener = gzip.open if str(path).endswith('.gz') else open

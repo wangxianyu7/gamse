@@ -82,3 +82,17 @@ tab = ccf_rv_batch(sorted(glob.glob('data/hd9407_*.fits')),
 The RVs are relative to the common template — subtract the median for a per-epoch
 anomaly, or tie nights with a standard star (as above). This module stops at RV;
 orbit / Rossiter-McLaughlin modelling is left to downstream tools.
+
+## Matched mask (`make_solar_mask.py`)
+
+HD 9407 is a G6.5 V dwarf, so a Teff-matched **solar (G2 V)** mask beats the
+generic 6600 K one. `make_solar_mask.py` downloads the public **Kurucz 2005 solar
+irradiance atlas**, converts it **vacuum→air** (`gamse.rv.vac2air` — mixing
+air/vacuum shifts the CCF by ~80 km/s!), and calls `gamse.rv.build_mask` to make
+`data/mask_solar.txt`. Section 5 of the notebook compares the two masks (the
+matched one is as good or better; an empirical mask built from the star's own
+co-add, also via `build_mask`, does best — it is the exact star).
+
+```bash
+python make_solar_mask.py      # needs network; writes data/mask_solar.txt
+```
