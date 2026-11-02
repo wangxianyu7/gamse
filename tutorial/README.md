@@ -16,6 +16,12 @@ header keywords the RV step needs (`DATE-OBS`, `EXPTIME`, `RA`, `DEC`). Note the
 Xinglong `DATE-OBS` is **Beijing local time**, so the example passes
 `utc_offset_hours=8`.
 
+> **How these spectra were extracted, and important caveats** (double-fiber flat
+> not applied → continuum via median filter; hard-wired aperture/pixel offsets;
+> fiber-B at trace−14 pix) are documented in **[`REDUCTION_NOTES.md`](REDUCTION_NOTES.md)**.
+> Short version: fine for *differential CCF RV* (demonstrated here), not for
+> absolute flux / line depths until the flat is fixed.
+
 Because a standard star has a constant true RV, the scatter of the measured RVs
 *is* the instrument's velocity stability.
 
